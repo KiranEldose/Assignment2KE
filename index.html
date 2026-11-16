@@ -38,5 +38,49 @@
         <strong>Prototype status:</strong>
         AI suggestions will be simulated for demonstration.
     </p>
+
+    <h2>Personal target date suggestions</h2>
+
+    <p>
+        Generate a suggested personal completion date before the official coursework deadline.
+    </p>
+
+    <button id="generateSuggestion">
+        Generate simulated suggestion
+    </button>
+
+    <p id="suggestionResult"></p>
+    
+    <script>
+        const button = document.getElementById("generateSuggestion");
+        const deadlineInput = document.getElementById("deadline");
+        const result = document.getElementById("suggestionResult");
+
+        button.addEventListener("click", function() {
+            const deadline = deadlineInput.value;
+            
+            if (!deadline) {
+                result.textContent = "Please enter an official deadline first.";
+                return;
+            }
+
+            // Simulate a suggestion three days before the official deadline
+            const targetDate = new Date(deadline +"T00:00:00Z");
+            targetDate.setUTCDate(targetDate.getUTCDate() - 3);
+
+            const suggestedDate = targetDate.toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+              timeZone: "UTC"
+            });
+
+            result.textContent =
+              "Suggested personal target date: " + suggestedDate +
+              ". This is three days before the official deadline to allow time for final checks.";
+
+
+        });
+    </script>
 </body>    
 </html>
