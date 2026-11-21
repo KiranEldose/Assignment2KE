@@ -6,7 +6,7 @@
     <title>Coursework Deadline Assistant</title>
 </head>
 <body>
-    <h1>Courework Deadline Assistant</h1>
+    <h1>Coursework Deadline Assistant</h1>
     
     <p>
         Review and control suggested personal coursework target dates.
@@ -50,15 +50,63 @@
     </button>
 
     <p id="suggestionResult"></p>
-    
+    <label for="personalTarget">
+      Your personal target date (you can edit this before approving):  
+    </label>
+    <input
+      type="date"
+      id="personalTarget"
+    >
+
+    <br><br>
+
+    <button id="approveDate">
+        Approve date
+    </button>
+
+    <button id="rejectSuggestion">
+        Reject suggestion
+    </button>
+
+    <p id="approvalResult"></p>
+
+    <h2>Simulated calendar</h2>
+    <p>
+        Approved personal target dates will appear here.
+    </p>
+
+    <ul id="calendarList"></ul>
+
+    <div id="calendarView"></div>
+    <button id ="previousMonth">
+        Previous month
+    </button>
+
+    <button id ="nextMonth">
+        Next month
+    </button>
+
     <script>
         const button = document.getElementById("generateSuggestion");
         const deadlineInput = document.getElementById("deadline");
         const result = document.getElementById("suggestionResult");
+        const personalTargetInput = document.getElementById("personalTarget");
+        const approveButton = document.getElementById("approveDate");
+        const rejectButton = document.getElementById("rejectSuggestion");
+        const approvalResult = document.getElementById("approvalResult");
+        const calendarList = document.getElementById("calendarList");
+        const calendarView = document.getElementById("calendarView");
+        let displayedYear;
+        let displayedMonth;
+        const previousMonthButton = document.getElementById("previousMonth");
+        const nextMonthButton = document.getElementById("nextMonth");
 
         button.addEventListener("click", function() {
             const deadline = deadlineInput.value;
+        
+            approvalResult.textContent = "";
             
+        
             if (!deadline) {
                 result.textContent = "Please enter an official deadline first.";
                 return;
@@ -67,6 +115,7 @@
             // Simulate a suggestion three days before the official deadline
             const targetDate = new Date(deadline +"T00:00:00Z");
             targetDate.setUTCDate(targetDate.getUTCDate() - 3);
+            personalTargetInput.value = targetDate.toISOString().slice(0,10);
 
             const suggestedDate = targetDate.toLocaleDateString("en-GB", {
               day: "numeric",
@@ -80,6 +129,202 @@
               ". This is three days before the official deadline to allow time for final checks.";
 
 
+        });
+
+        approveButton.addEventListener("click", function() {
+            const chosenDate = personalTargetInput.value;
+            const courseworkName = document.getElementById("coursework").value;
+
+
+            if (!chosenDate) {
+                approvalResult.textContent = "Please choose a personal target date first.";
+                return;
+            }
+
+            if (chosenDate > deadlineInput.value) {
+                approvalResult.textContent = 
+                 "Your personal target date cannot be after the official deadline.";
+                return;
+            }
+
+            approvalResult.textContent =
+                "Approved personal target date: " + chosenDate;
+
+            const existingEntry = Array.from(calendarList.children).find(function(entry) {
+                return entry.dataset.coursework === courseworkName;
+            });
+
+            const calendarEntry = existingEntry || document.createElement("li");
+
+            calendarEntry.dataset.coursework = courseworkName;
+            calendarEntry.dataset.personalTarget = chosenDate;
+            calendarEntry.dataset.officialDeadline = deadlineInput.value;
+
+            calendarEntry.textContent =
+              courseworkName + 
+              "\n Personal target: " + chosenDate + 
+              "\n Official deadline: " + deadlineInput.value;
+            
+            calendarEntry.style.whiteSpace = "pre-line";
+
+            if (!existingEntry) {
+                calendarList.appendChild(calendarEntry);
+            }
+            
+            
+            
+            const approvedDate = new Date(chosenDate + "T00:00:00Z");
+            displayedYear = approvedDate.getUTCFullYear();
+            displayedMonth = approvedDate.getUTCMonth();
+
+        drawCalendar(approvedDate);
+
+            
+        });
+
+        function drawCalendar(approvedDate) {
+            calendarView.textContent = approvedDate.toLocaleDateString("en-GB", {
+              month: "long",
+              year: "numeric",
+              timeZone: "UTC"
+            });
+
+            const year = approvedDate.getUTCFullYear();
+            const month = approvedDate.getUTCMonth();
+
+            const firstDay = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7;
+            const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+
+            const table = document.createElement("table");
+            table.style.width = "100%";
+            table.style.tableLayout = "fixed";
+            const headerRow = document.createElement("tr");
+
+            ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].forEach(function(day) {
+              const heading = document.createElement("th");
+              heading.textContent = day;
+              heading.style.padding = "8px";
+              headerRow.appendChild(heading);  
+            });
+
+            table.appendChild(headerRow);
+
+            let row = document.createElement("tr");
+
+            for (let i = 0; i < firstDay; i++) {
+                row.appendChild(document.createElement("td"));
+            }
+
+            for (let day = 1; day <= daysInMonth; day++){
+                if (row.children.length === 7) {
+                    table.appendChild(row);
+                    row = document.createElement("tr");
+                }
+
+                const cell = document.createElement("td");
+                cell.textContent = day;
+                cell.style.padding = "8px";
+                cell.style.textAlign = "center";
+                cell.style.height = "85px";
+                cell.style.verticalAlign = "top";
+
+                const cellDate =
+                  year + "-" +
+                  String(month + 1).padStart(2, "0") + "-" +
+                  String(day).padStart(2, "0");
+
+                const entries = Array.from(calendarList.children);
+                
+                const isPersonal = entries.some(function(entry) {
+                    return entry.dataset.personalTarget === cellDate;
+                });
+
+                const isOfficial = entries.some(function(entry) {
+                    return entry.dataset.officialDeadline === cellDate;
+                });
+
+                if (isPersonal || isOfficial) {
+                    cell.style.fontWeight = "bold";
+                }
+
+                entries.forEach(function(entry) {
+                    if (entry.dataset.personalTarget === cellDate) {
+                        const label = document.createElement("div");
+
+                        label.textContent =
+                            entry.dataset.coursework + " - Personal Target";
+                        
+                        label.style.backgroundColor = "lightgreen";
+                        label.style.padding = "4px";
+                        label.style.marginTop = "4px";
+                        label.style.borderRadius = "4px";
+                        label.style.fontSize = "12px";
+                        label.style.textAlign = "left";
+                        label.style.overflow = "hidden";
+                        label.style.textOverflow = "ellipsis"; 
+                        
+                        cell.appendChild(label);
+                    }
+                });
+
+                entries.forEach(function(entry) {
+                    if (entry.dataset.officialDeadline === cellDate) {
+                        const label = document.createElement("div");
+
+                        label.textContent =
+                            entry.dataset.coursework + " - Official Deadline";
+                        
+                        label.style.backgroundColor = "lightblue";
+                        label.style.padding = "4px";
+                        label.style.marginTop = "4px";
+                        label.style.borderRadius = "4px";
+                        label.style.fontSize = "12px";
+                        label.style.textAlign = "left";
+                        label.style.overflow = "hidden";
+                        label.style.textOverflow = "ellipsis"; 
+                        
+                        cell.appendChild(label);
+                    }
+                });
+
+                row.appendChild(cell);
+
+            }
+
+            table.appendChild(row);
+            calendarView.appendChild(table);
+        }
+
+            function changeMonth(amount) {
+                if (displayedYear == undefined) {
+                    return;
+                }
+                const newDate = new Date(Date.UTC(displayedYear, displayedMonth + amount, 1));
+
+                displayedYear = newDate.getUTCFullYear();
+                displayedMonth = newDate.getUTCMonth();
+
+                drawCalendar(newDate);
+            }
+
+            previousMonthButton.addEventListener("click", function() {
+                changeMonth(-1);
+            });
+
+            nextMonthButton.addEventListener("click", function() {
+                changeMonth(1);
+            });
+
+        
+
+    
+
+        rejectButton.addEventListener("click", function() {
+            result.textContent = "";
+            personalTargetInput.value = "";
+
+            approvalResult.textContent = 
+              "Suggestion rejected. No date was approved.";
         });
     </script>
 </body>    
